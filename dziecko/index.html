@@ -1,1 +1,705 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Akademia Przygód</title>
+  <style>
+    :root {
+      --bg-grad: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+      --card-bg: rgba(255, 255, 255, 0.95);
+      --text-main: #1e1b4b;
+      --text-muted: #64748b;
+      --accent: #8b5cf6;
+      --accent-light: #f3e8ff;
+    }
+    body.theme-candy {
+      --bg-grad: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #a1c4fd 100%);
+      --text-main: #4a154b;
+      --accent: #ec4899;
+      --accent-light: #fce7f3;
+    }
+    body.theme-jungle {
+      --bg-grad: linear-gradient(135deg, #10b981 0%, #34d399 50%, #fbbf24 100%);
+      --text-main: #064e3b;
+      --accent: #059669;
+      --accent-light: #d1fae5;
+    }
+    body.theme-ocean {
+      --bg-grad: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 50%, #818cf8 100%);
+      --text-main: #0c4a6e;
+      --accent: #0284c7;
+      --accent-light: #e0f2fe;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      background: var(--bg-grad);
+      background-attachment: fixed;
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 14px;
+      padding-bottom: 95px;
+    }
+    .app-shell { max-width: 480px; margin: 0 auto; }
+    .card {
+      background: var(--card-bg);
+      border-radius: 26px;
+      padding: 18px;
+      margin-bottom: 14px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.14);
+    }
+    .hero-header { display: flex; align-items: center; gap: 12px; position: relative; }
+    .avatar-circle {
+      width: 64px; height: 64px; border-radius: 20px;
+      background: var(--accent-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.1rem; flex-shrink: 0;
+    }
+    .hero-info h2 { font-size: 1.25rem; font-weight: 800; }
+    .badge-row { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+    .pill {
+      background: var(--accent-light); color: var(--accent);
+      font-weight: 700; font-size: 0.78rem; padding: 4px 10px;
+      border-radius: 999px;
+    }
+    .btn-lock {
+      position: absolute; top: 0; right: 0;
+      background: #f1f5f9; border: none; width: 36px; height: 36px;
+      border-radius: 12px; font-size: 1rem; cursor: pointer;
+    }
+    .xp-bar-wrap { margin-top: 12px; }
+    .xp-labels {
+      display: flex; justify-content: space-between;
+      font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 4px;
+    }
+    .xp-track { height: 11px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+    .xp-fill {
+      height: 100%; width: 20%;
+      background: linear-gradient(90deg, var(--accent), #f59e0b);
+      border-radius: 99px; transition: width 0.4s ease;
+    }
+    .quick-gps-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .btn-quick {
+      border: none; border-radius: 20px; padding: 13px 10px;
+      font-size: 0.85rem; font-weight: 800; color: #fff; cursor: pointer;
+      box-shadow: 0 5px 14px rgba(0,0,0,0.15);
+    }
+    .btn-here { background: linear-gradient(135deg, #10b981, #059669); }
+    .btn-pickup { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .section-title { font-size: 1.05rem; font-weight: 800; margin-bottom: 12px; }
+    .mission-item {
+      background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 18px;
+      padding: 12px; margin-bottom: 10px;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .mission-details { flex: 1; }
+    .mission-details h4 { font-size: 0.95rem; margin-bottom: 2px; }
+    .mission-details p { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; }
+    .btn-play {
+      background: var(--accent); color: #fff; border: none;
+      padding: 10px 15px; border-radius: 14px; font-weight: 800; font-size: 0.85rem; cursor: pointer;
+    }
+    .input-group { margin-bottom: 12px; }
+    .input-group label { display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; color: var(--text-muted); }
+    .input-group input, .input-group select {
+      width: 100%; padding: 12px; border-radius: 14px; border: 2px solid #e2e8f0; font-size: 0.95rem; font-weight: 600;
+    }
+    .avatar-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .av-card {
+      border: 2px solid #e2e8f0; border-radius: 16px; padding: 8px;
+      text-align: center; cursor: pointer; font-weight: 700; font-size: 0.75rem;
+    }
+    .av-card .emoji { font-size: 1.8rem; display: block; }
+    .av-card.active { border-color: var(--accent); background: var(--accent-light); }
+    .bottom-nav {
+      position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
+      width: calc(100% - 28px); max-width: 440px;
+      background: rgba(255, 255, 255, 0.96); border-radius: 22px; padding: 6px;
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2); z-index: 50;
+    }
+    .nav-btn {
+      border: none; background: transparent; padding: 8px; border-radius: 16px;
+      font-weight: 800; font-size: 0.78rem; color: var(--text-muted); cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    .nav-btn.active { background: var(--accent-light); color: var(--accent); }
+    .chat-box {
+      height: 250px; overflow-y: auto; background: #f8fafc;
+      border-radius: 16px; padding: 12px; margin-bottom: 10px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .bubble { max-width: 82%; padding: 9px 13px; border-radius: 16px; font-size: 0.88rem; }
+    .bubble.other { background: #e2e8f0; align-self: flex-start; color: #1e293b; }
+    .bubble.me { background: var(--accent); color: #fff; align-self: flex-end; }
+    .quick-replies { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 6px; }
+    .chip {
+      background: var(--accent-light); color: var(--accent); border: none;
+      padding: 6px 11px; border-radius: 99px; font-size: 0.75rem; font-weight: 700;
+      white-space: nowrap; cursor: pointer;
+    }
+    #test-modal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(15, 23, 42, 0.92); z-index: 200; padding: 12px; flex-direction: column;
+    }
+    .modal-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      color: #fff; margin-bottom: 8px; gap: 8px; flex-wrap: wrap;
+    }
+    #test-iframe { flex: 1; width: 100%; background: #fff; border-radius: 18px; border: none; }
+  </style>
+</head>
+<body>
 
+<div class="app-shell">
+  <!-- EKRAN KONFIGURACJI PROFILU -->
+  <div id="setup-screen" class="card" style="display: none;">
+    <h2 style="text-align:center; margin-bottom:4px;">Witaj w Akademii! 🚀</h2>
+    <p style="text-align:center; color:var(--text-muted); font-size:0.85rem; margin-bottom:14px;">
+      Stwórz swoją postać i wpisz Kod Rodziny
+    </p>
+    <form id="setup-form">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div class="input-group">
+          <label>Imię</label>
+          <input type="text" id="in-first" required placeholder="np. Marcjanna">
+        </div>
+        <div class="input-group">
+          <label>Nazwisko</label>
+          <input type="text" id="in-last" required placeholder="np. Kamińska">
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div class="input-group">
+          <label>Twoja Ksywka</label>
+          <input type="text" id="in-nick" placeholder="np. Iskra">
+        </div>
+        <div class="input-group">
+          <label>Klasa</label>
+          <select id="in-grade">
+            <option>Klasa 1</option><option>Klasa 2</option><option>Klasa 3</option>
+            <option selected>Klasa 4</option><option>Klasa 5</option><option>Klasa 6</option>
+            <option>Klasa 7</option><option>Klasa 8</option>
+          </select>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>Wybierz swojego bohatera</label>
+        <div class="avatar-picker" id="avatar-picker"></div>
+      </div>
+      <div class="input-group">
+        <label>Motyw kolorystyczny</label>
+        <select id="in-theme">
+          <option value="default">🌌 Kosmiczna Zorza</option>
+          <option value="theme-candy">🍭 Cukierkowa Chmurka</option>
+          <option value="theme-jungle">🌿 Słoneczna Dżungla</option>
+          <option value="theme-ocean">🐬 Oceaniczna Fala</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Kod Rodziny (od Rodziców)</label>
+        <input type="text" id="in-code" required placeholder="np. DOM-42" style="text-transform:uppercase; text-align:center; letter-spacing:2px;">
+      </div>
+      <button type="submit" id="btn-save-profile" class="btn-play" style="width:100%; padding:14px; font-size:1rem;">
+        Dołącz do Rodziny! ✨
+      </button>
+    </form>
+  </div>
+
+  <!-- EKRAN GŁÓWNY DZIECKA -->
+  <div id="main-screen" style="display: none;">
+    <div class="card">
+      <div class="hero-header">
+        <div class="avatar-circle" id="ui-avatar">🦄</div>
+        <div class="hero-info">
+          <h2 id="ui-greeting">Cześć!</h2>
+          <div class="badge-row">
+            <span class="pill">⭐ <span id="ui-stars">0</span> gwiazdek</span>
+            <span class="pill" id="ui-grade">Klasa 4</span>
+          </div>
+        </div>
+        <button class="btn-lock" id="btn-parent-pin" title="Ustawienia (PIN Rodzica)">🔒</button>
+      </div>
+      <div class="xp-bar-wrap">
+        <div class="xp-labels">
+          <span id="ui-level-txt">Poziom 1: Odkrywczyni</span>
+          <span id="ui-next-stars">Kolejny poziom co 100 ⭐</span>
+        </div>
+        <div class="xp-track"><div class="xp-fill" id="ui-xp-bar"></div></div>
+      </div>
+    </div>
+
+    <div class="quick-gps-row">
+      <button class="btn-quick btn-here" id="btn-alert-here">📍 Jestem na miejscu</button>
+      <button class="btn-quick btn-pickup" id="btn-alert-pickup">👋 Odbierz mnie</button>
+    </div>
+
+    <!-- ZAKŁADKA: MISJE -->
+    <div id="tab-missions" class="card">
+      <div class="section-title">🎯 Twoje Misje Edukacyjne</div>
+      <div id="missions-list">
+        <p style="color:var(--text-muted); font-size:0.88rem;">Ładowanie misji od rodziców...</p>
+      </div>
+    </div>
+
+    <!-- ZAKŁADKA: CZAT -->
+    <div id="tab-chat" class="card" style="display: none;">
+      <div class="section-title">💬 Czat Rodzinny</div>
+      <div class="chat-box" id="chat-messages"></div>
+      <div class="quick-replies">
+        <button class="chip" data-msg="Pomóżcie mi z zadaniem 🙏">Pomóżcie z zadaniem 🙏</button>
+        <button class="chip" data-msg="Zrobiłam wszystkie zadania! 🏆">Zrobiłam zadania! 🏆</button>
+        <button class="chip" data-msg="Wracam już do domu 🏠">Wracam do domu 🏠</button>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="chat-input" placeholder="Napisz wiadomość..." style="flex:1; padding:11px; border-radius:14px; border:2px solid #e2e8f0; outline:none;">
+        <button class="btn-play" id="btn-send-chat">Wyślij</button>
+      </div>
+    </div>
+
+    <!-- ZAKŁADKA: MOTYWY -->
+    <div id="tab-style" class="card" style="display: none;">
+      <div class="section-title">🎨 Wybierz Kolory</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;">
+        <button class="btn-play" style="background:#8b5cf6" data-theme="default">🌌 Zorza</button>
+        <button class="btn-play" style="background:#ec4899" data-theme="theme-candy">🍭 Cukierek</button>
+        <button class="btn-play" style="background:#10b981" data-theme="theme-jungle">🌿 Dżungla</button>
+        <button class="btn-play" style="background:#0284c7" data-theme="theme-ocean">🐬 Ocean</button>
+      </div>
+      <p style="font-size:0.78rem; color:var(--text-muted); font-weight:700;" id="gps-status-txt">
+        📡 Lokalizator GPS aktywny (co 20 min)
+      </p>
+    </div>
+
+    <div class="bottom-nav">
+      <button class="nav-btn active" data-tab="missions"><span style="font-size:1.2rem;">🎯</span>Misje</button>
+      <button class="nav-btn" data-tab="chat"><span style="font-size:1.2rem;">💬</span>Czat</button>
+      <button class="nav-btn" data-tab="style"><span style="font-size:1.2rem;">🎨</span>Motywy</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NA TESTY HTML -->
+<div id="test-modal">
+  <div class="modal-bar">
+    <strong id="modal-test-title">Misja</strong>
+    <div style="display:flex; gap:8px;">
+      <button class="btn-play" style="background:#10b981;" id="btn-complete-manual">✅ Zakończ i odbierz ⭐</button>
+      <button class="btn-play" style="background:#ef4444;" id="btn-close-modal">Zamknij ✕</button>
+    </div>
+  </div>
+  <iframe id="test-iframe" sandbox="allow-scripts allow-same-origin"></iframe>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, updateDoc, addDoc,
+    collection, query, orderBy, limit, onSnapshot, getDocs, where, deleteDoc
+  } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDTWIp2sCjIbAk0fBmny8jsLba1xu2nlv0",
+    authDomain: "akademia-rodzinna.firebaseapp.com",
+    projectId: "akademia-rodzinna",
+    storageBucket: "akademia-rodzinna.firebasestorage.app",
+    messagingSenderId: "396773055975",
+    appId: "1:396773055975:web:08fafcb904a41b9c5ef142"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const AVATARS = [
+    { id: 'unicorn', emoji: '🦄', name: 'Jednorożec' },
+    { id: 'astro', emoji: '👩‍🚀', name: 'Kosmonautka' },
+    { id: 'fox', emoji: '🦊', name: 'Sprytny Lis' },
+    { id: 'panda', emoji: '🐼', name: 'Super Panda' },
+    { id: 'bolt', emoji: '⚡', name: 'Błyskawica' },
+    { id: 'star', emoji: '🌟', name: 'Gwiazda' }
+  ];
+
+  const STORAGE_KEY = 'akademia_kid_profile_v1';
+  let selectedAvatar = AVATARS[0];
+  let currentProfile = null;
+  let activeMission = null;
+  let lastSavedLocation = null;
+  let lastForceGpsHandled = 0;
+
+  // Renderowanie wyboru awatarów
+  const picker = document.getElementById('avatar-picker');
+  AVATARS.forEach((av, i) => {
+    const el = document.createElement('div');
+    el.className = 'av-card' + (i === 0 ? ' active' : '');
+    el.innerHTML = `<span class="emoji">${av.emoji}</span>${av.name}`;
+    el.onclick = () => {
+      document.querySelectorAll('.av-card').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      selectedAvatar = av;
+    };
+    picker.appendChild(el);
+  });
+
+  // Haversine - obliczanie odległości w metrach (filtr postoju 35m)
+  function getDistanceMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371e3;
+    const rad = x => x * Math.PI / 180;
+    const dLat = rad(lat2 - lat1);
+    const dLon = rad(lon2 - lon1);
+    const a = Math.sin(dLat/2)**2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  // Wysyłanie współrzędnych GPS do Firebase
+  async function sendGpsCoordinate(forceNow = false) {
+    if (!currentProfile || !navigator.geolocation) return;
+
+    let batteryPct = null;
+    if (navigator.getBattery) {
+      try {
+        const b = await navigator.getBattery();
+        batteryPct = Math.round(b.level * 100);
+      } catch(e) {}
+    }
+
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const { latitude, longitude, accuracy } = pos.coords;
+      const nowIso = new Date().toISOString();
+      const todayStr = nowIso.split('T')[0];
+
+      // Sprawdzenie filtru postoju 35m
+      if (!forceNow && lastSavedLocation && lastSavedLocation.docId) {
+        const dist = getDistanceMeters(lastSavedLocation.lat, lastSavedLocation.lng, latitude, longitude);
+        if (dist < 35) {
+          // Aktualizujemy tylko godzinę końca postoju i status bieżący
+          const childRef = doc(db, "families", currentProfile.familyCode, "children", currentProfile.id);
+          await updateDoc(childRef, {
+            "location.lastSeen": nowIso,
+            "location.battery": batteryPct
+          }).catch(() => {});
+
+          const histRef = doc(db, "families", currentProfile.familyCode, "children", currentProfile.id, "locations_history", lastSavedLocation.docId);
+          await updateDoc(histRef, { endTime: nowIso, battery: batteryPct }).catch(() => {});
+          return;
+        }
+      }
+
+      const locData = {
+        lat: latitude,
+        lng: longitude,
+        acc: Math.round(accuracy),
+        battery: batteryPct,
+        lastSeen: nowIso
+      };
+
+      const childRef = doc(db, "families", currentProfile.familyCode, "children", currentProfile.id);
+      await updateDoc(childRef, { location: locData }).catch(() => {});
+
+      const histCol = collection(db, "families", currentProfile.familyCode, "children", currentProfile.id, "locations_history");
+      const added = await addDoc(histCol, {
+        dateStr: todayStr,
+        lat: latitude,
+        lng: longitude,
+        acc: Math.round(accuracy),
+        battery: batteryPct,
+        timestamp: nowIso,
+        endTime: nowIso
+      });
+
+      lastSavedLocation = { lat: latitude, lng: longitude, docId: added.id };
+      const t = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      document.getElementById('gps-status-txt').innerText = `📡 Ostatni pomiar GPS: ${t} (±${Math.round(accuracy)}m)`;
+    }, (err) => {
+      console.warn("Błąd GPS:", err.message);
+    }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+  }
+
+  // Czyszczenie śladów GPS starszych niż 30 dni
+  async function cleanupOldGpsHistory() {
+    if (!currentProfile) return;
+    try {
+      const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const histCol = collection(db, "families", currentProfile.familyCode, "children", currentProfile.id, "locations_history");
+      const q = query(histCol, where("timestamp", "<", cutoff), limit(30));
+      const snap = await getDocs(q);
+      snap.forEach(d => deleteDoc(d.ref));
+    } catch(e) {}
+  }
+
+  // Zapis i rejestracja profilu dziecka (z kontrolą limitu max 6 dzieci)
+  document.getElementById('setup-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-save-profile');
+    btn.disabled = true;
+    btn.innerText = "Łączenie z bazą...";
+
+    try {
+      const familyCode = document.getElementById('in-code').value.trim().toUpperCase();
+      const familyRef = doc(db, "families", familyCode);
+      const familySnap = await getDoc(familyRef);
+
+      if (!familySnap.exists()) {
+        await setDoc(familyRef, { createdAt: new Date().toISOString(), pin: "1234", parents: [] });
+      }
+
+      const childrenCol = collection(db, "families", familyCode, "children");
+      const existingKids = await getDocs(childrenCol);
+
+      const savedLocal = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+      const childId = (savedLocal && savedLocal.id) ? savedLocal.id : 'kid_' + Date.now();
+
+      const isAlreadyRegistered = existingKids.docs.some(d => d.id === childId);
+      if (!isAlreadyRegistered && existingKids.size >= 6) {
+        alert("Limit dzieci w tej rodzinie (maksymalnie 6) został już osiągnięty!");
+        btn.disabled = false;
+        btn.innerText = "Dołącz do Rodziny! ✨";
+        return;
+      }
+
+      const profile = {
+        id: childId,
+        first: document.getElementById('in-first').value.trim(),
+        last: document.getElementById('in-last').value.trim(),
+        nick: document.getElementById('in-nick').value.trim(),
+        grade: document.getElementById('in-grade').value,
+        avatarEmoji: selectedAvatar.emoji,
+        theme: document.getElementById('in-theme').value,
+        familyCode: familyCode,
+        stars: (savedLocal && savedLocal.stars) ? savedLocal.stars : 0
+      };
+
+      await setDoc(doc(db, "families", familyCode, "children", childId), profile, { merge: true });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+      startMainApp(profile);
+    } catch (err) {
+      alert("Błąd połączenia: " + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerText = "Dołącz do Rodziny! ✨";
+    }
+  });
+
+  function updateHeroUI(p) {
+    document.getElementById('ui-avatar').innerText = p.avatarEmoji || '🦄';
+    document.getElementById('ui-greeting').innerText = `Hej, ${p.nick || p.first}!`;
+    document.getElementById('ui-grade').innerText = p.grade;
+    const stars = p.stars || 0;
+    document.getElementById('ui-stars').innerText = stars;
+    const level = Math.floor(stars / 100) + 1;
+    const progress = stars % 100;
+    document.getElementById('ui-level-txt').innerText = `Poziom ${level}: Super Uczennica`;
+    document.getElementById('ui-xp-bar').style.width = `${Math.max(10, progress)}%`;
+    document.body.className = (!p.theme || p.theme === 'default') ? '' : p.theme;
+  }
+
+  function startMainApp(profile) {
+    currentProfile = profile;
+    document.getElementById('setup-screen').style.display = 'none';
+    document.getElementById('main-screen').style.display = 'block';
+    updateHeroUI(profile);
+
+    // 1. Nasłuchiwanie własnego profilu (gwiazdki oraz zdalne wywołanie GPS przez rodzica)
+    onSnapshot(doc(db, "families", profile.familyCode, "children", profile.id), (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      currentProfile.stars = data.stars || 0;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(currentProfile));
+      updateHeroUI(currentProfile);
+
+      if (data.forceGpsAt && data.forceGpsAt > lastForceGpsHandled) {
+        lastForceGpsHandled = data.forceGpsAt;
+        sendGpsCoordinate(true);
+      }
+    });
+
+    // 2. Nasłuchiwanie Misji (testów HTML od rodzica)
+    const missionsQ = query(collection(db, "families", profile.familyCode, "missions"), orderBy("createdAt", "desc"));
+    onSnapshot(missionsQ, (snap) => {
+      const container = document.getElementById('missions-list');
+      container.innerHTML = '';
+      let count = 0;
+
+      snap.forEach((d) => {
+        const m = d.data();
+        if (m.targetChildId !== 'ALL' && m.targetChildId !== profile.id) return;
+        count++;
+        const isDone = m.completedBy && m.completedBy[profile.id];
+
+        const div = document.createElement('div');
+        div.className = 'mission-item';
+        div.innerHTML = `
+          <div class="mission-details">
+            <h4>${isDone ? '✅ ' : '🌟 '}${m.title}</h4>
+            <p>${m.subject || 'Zadanie'} • Nagroda: +${m.stars || 20} ⭐</p>
+          </div>
+          <button class="btn-play" style="background:${isDone ? '#10b981' : 'var(--accent)'}">
+            ${isDone ? 'Powtórz ▶' : 'Graj ▶'}
+          </button>
+        `;
+        div.querySelector('button').onclick = () => openMissionModal(d.id, m);
+        container.appendChild(div);
+      });
+
+      if (count === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted); font-size:0.88rem;">Brak nowych misji. Napisz na czacie do rodziców!</p>';
+      }
+    });
+
+    // 3. Nasłuchiwanie Czatu
+    const chatQ = query(collection(db, "families", profile.familyCode, "messages"), orderBy("createdAt", "asc"), limit(60));
+    onSnapshot(chatQ, (snap) => {
+      const box = document.getElementById('chat-messages');
+      box.innerHTML = '';
+      snap.forEach((d) => {
+        const msg = d.data();
+        const isMe = msg.senderId === profile.id;
+        const b = document.createElement('div');
+        b.className = 'bubble ' + (isMe ? 'me' : 'other');
+        b.innerHTML = `<strong>${msg.senderName}:</strong> ${msg.text}`;
+        box.appendChild(b);
+      });
+      box.scrollTop = box.scrollHeight;
+    });
+
+    // Pierwszy pomiar GPS i pętla 20-minutowa
+    sendGpsCoordinate(true);
+    cleanupOldGpsHistory();
+    setInterval(() => sendGpsCoordinate(false), 20 * 60 * 1000);
+  }
+
+  // Otwieranie testu HTML w pełnoekranowym oknie
+  function openMissionModal(missionId, missionData) {
+    activeMission = { id: missionId, ...missionData };
+    document.getElementById('modal-test-title').innerText = `${missionData.title} (+${missionData.stars || 20} ⭐)`;
+    document.getElementById('test-modal').style.display = 'flex';
+    document.getElementById('test-iframe').srcdoc = missionData.htmlContent || '<h3>Brak treści zadania</h3>';
+  }
+
+  async function completeActiveMission(scoreInfo = "ukończono") {
+    if (!activeMission || !currentProfile) return;
+    const reward = Number(activeMission.stars || 20);
+    const newStars = (currentProfile.stars || 0) + reward;
+
+    // Zapis wyniku w misji i dodanie gwiazdek dziecku
+    const missionRef = doc(db, "families", currentProfile.familyCode, "missions", activeMission.id);
+    await updateDoc(missionRef, {
+      [`completedBy.${currentProfile.id}`]: {
+        name: currentProfile.nick || currentProfile.first,
+        score: scoreInfo,
+        finishedAt: new Date().toISOString()
+      }
+    }).catch(() => {});
+
+    const childRef = doc(db, "families", currentProfile.familyCode, "children", currentProfile.id);
+    await updateDoc(childRef, { stars: newStars }).catch(() => {});
+
+    await sendChat(`🏆 Ukończyłam misję „${activeMission.title}” (${scoreInfo}) i zdobyłam +${reward} ⭐!`);
+    document.getElementById('test-modal').style.display = 'none';
+    activeMission = null;
+    alert(`Brawo! Zdobywasz +${reward} gwiazdek! 🌟`);
+  }
+
+  document.getElementById('btn-complete-manual').onclick = () => completeActiveMission("zaliczono");
+  document.getElementById('btn-close-modal').onclick = () => {
+    document.getElementById('test-modal').style.display = 'none';
+    activeMission = null;
+  };
+
+  window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'TASK_FINISHED') {
+      const scoreStr = (event.data.score !== undefined) ? `${event.data.score}/${event.data.maxScore}` : "ukończono";
+      completeActiveMission(scoreStr);
+    }
+  });
+
+  // Wysyłanie wiadomości na czat
+  async function sendChat(text) {
+    if (!currentProfile || !text.trim()) return;
+    await addDoc(collection(db, "families", currentProfile.familyCode, "messages"), {
+      senderId: currentProfile.id,
+      senderName: currentProfile.nick || currentProfile.first,
+      text: text.trim(),
+      createdAt: new Date().toISOString()
+    });
+  }
+
+  document.getElementById('btn-send-chat').onclick = () => {
+    const inp = document.getElementById('chat-input');
+    sendChat(inp.value);
+    inp.value = '';
+  };
+
+  document.querySelectorAll('.chip[data-msg]').forEach(btn => {
+    btn.onclick = () => sendChat(btn.dataset.msg);
+  });
+
+  // Szybkie przyciski GPS ("Jestem na miejscu" / "Odbierz mnie")
+  document.getElementById('btn-alert-here').onclick = async () => {
+    await sendGpsCoordinate(true);
+    await sendChat("📍 Dotarłam bezpiecznie na miejsce! (Wysłano dokładną pozycję GPS)");
+    alert("Wysłano wiadomość i pinezkę GPS do Rodziców!");
+  };
+
+  document.getElementById('btn-alert-pickup').onclick = async () => {
+    await sendGpsCoordinate(true);
+    await sendChat("👋 Możecie po mnie przyjechać? (Wysłano dokładną pozycję GPS)");
+    alert("Wysłano prośbę o odbiór i pinezkę GPS do Rodziców!");
+  };
+
+  // Blokada PIN Rodzica
+  document.getElementById('btn-parent-pin').onclick = async () => {
+    const pinInput = prompt("🔒 Strefa Rodzica. Podaj kod PIN (domyślnie 1234):");
+    if (!pinInput) return;
+    let validPin = "1234";
+    if (currentProfile) {
+      const famSnap = await getDoc(doc(db, "families", currentProfile.familyCode));
+      if (famSnap.exists() && famSnap.data().pin) validPin = famSnap.data().pin;
+    }
+    if (pinInput === validPin) {
+      document.getElementById('setup-screen').style.display = 'block';
+      document.getElementById('main-screen').style.display = 'none';
+    } else {
+      alert("Błędny kod PIN!");
+    }
+  };
+
+  // Nawigacja zakładek i motywów
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.onclick = () => {
+      const t = btn.dataset.tab;
+      document.getElementById('tab-missions').style.display = t === 'missions' ? 'block' : 'none';
+      document.getElementById('tab-chat').style.display = t === 'chat' ? 'block' : 'none';
+      document.getElementById('tab-style').style.display = t === 'style' ? 'block' : 'none';
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    };
+  });
+
+  document.querySelectorAll('[data-theme]').forEach(btn => {
+    btn.onclick = async () => {
+      const th = btn.dataset.theme;
+      document.body.className = th === 'default' ? '' : th;
+      if (currentProfile) {
+        currentProfile.theme = th;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(currentProfile));
+        await updateDoc(doc(db, "families", currentProfile.familyCode, "children", currentProfile.id), { theme: th });
+      }
+    };
+  });
+
+  // Inicjalizacja przy starcie
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    startMainApp(JSON.parse(saved));
+  } else {
+    document.getElementById('setup-screen').style.display = 'block';
+  }
+</script>
+</body>
+</html>
