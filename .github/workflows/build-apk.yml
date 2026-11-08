@@ -1,0 +1,100 @@
+name: Budowanie APK (Dziecko + Rodzic)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build_android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Pobranie kodu z repozytorium
+        uses: actions/checkout@v4
+
+      - name: 2. Konfiguracja Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 3. Konfiguracja Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 4. Konfiguracja Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 5. Instalacja zależności Capacitor
+        run: npm install
+
+      - name: 6. Kompilacja APK dla Dziecka
+        if: hashFiles('dziecko/index.html') != ''
+        run: |
+          cat << 'EOF' > capacitor.config.json
+          {
+            "appId": "pl.akademia.dziecko",
+            "appName": "Akademia Przygod",
+            "webDir": "dziecko",
+            "bundledWebRuntime": false,
+            "server": {
+              "androidScheme": "https"
+            }
+          }
+          EOF
+          rm -rf android
+          npx cap add android
+          
+          # Dodanie uprawnień GPS do AndroidManifest.xml przed znacznikiem zamykającym
+          sed -i 's|</manifest>|    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />\n</manifest>|g' android/app/src/main/AndroidManifest.xml
+          
+          npx cap sync android
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+          cp app/build/outputs/apk/debug/app-debug.apk ../Akademia-Dziecko.apk
+
+      - name: 7. Kompilacja APK dla Rodzica (Matka)
+        if: hashFiles('rodzic/index.html') != ''
+        run: |
+          cat << 'EOF' > capacitor.config.json
+          {
+            "appId": "pl.akademia.rodzic",
+            "appName": "Akademia Rodzic",
+            "webDir": "rodzic",
+            "bundledWebRuntime": false,
+            "server": {
+              "androidScheme": "https"
+            }
+          }
+          EOF
+          rm -rf android
+          npx cap add android
+          
+          # Dodanie uprawnień lokalizacji do AndroidManifest.xml
+          sed -i 's|</manifest>|    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n</manifest>|g' android/app/src/main/AndroidManifest.xml
+          
+          npx cap sync android
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+          cp app/build/outputs/apk/debug/app-debug.apk ../Akademia-Rodzic.apk
+
+      - name: 8. Zapisanie plików APK w zakładce Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gotowe-Instalatory-APK
+          path: "*.apk"
+
+      - name: 9. Automatyczna publikacja w GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: "Wersja v1.0.${{ github.run_number }}"
+          files: "*.apk"
+          generate_release_notes: true
