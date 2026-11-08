@@ -1,1 +1,586 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Akademia Rodzic - Panel Matki</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --primary: #4f46e5;
+      --success: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; padding: 14px; padding-bottom: 90px; }
+    .shell { max-width: 650px; margin: 0 auto; }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 18px; padding: 16px; margin-bottom: 14px;
+    }
+    .top-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 8px;
+    }
+    .badge {
+      background: #0f172a; border: 1px solid var(--border);
+      padding: 5px 10px; border-radius: 10px; font-size: 0.8rem; color: var(--muted);
+    }
+    .badge strong { color: #fff; }
+    .kids-strip {
+      display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 12px;
+    }
+    .kid-card {
+      background: #0f172a; border: 1px solid var(--border);
+      border-radius: 14px; padding: 12px; min-width: 215px; flex-shrink: 0;
+    }
+    .kid-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .kid-card-head .emo { font-size: 1.7rem; }
+    .kid-actions { display: flex; gap: 6px; margin-top: 8px; }
+    .btn-sm {
+      flex: 1; padding: 7px 8px; border-radius: 8px; border: none;
+      font-size: 0.75rem; font-weight: 700; cursor: pointer; color: #fff; background: var(--primary);
+    }
+    #family-map { width: 100%; height: 360px; border-radius: 14px; border: 1px solid var(--border); z-index: 1; }
+    .track-controls {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px;
+    }
+    input, select, textarea {
+      width: 100%; padding: 10px 12px; background: #0f172a;
+      border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.9rem;
+    }
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; margin-top: 10px; font-weight: 600; }
+    .btn-main {
+      background: var(--primary); color: #fff; border: none;
+      padding: 12px 16px; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; margin-top: 12px;
+    }
+    .chat-box {
+      height: 280px; overflow-y: auto; background: #0f172a;
+      border-radius: 12px; padding: 12px; margin-bottom: 10px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .msg { max-width: 82%; padding: 8px 12px; border-radius: 12px; font-size: 0.88rem; }
+    .msg.parent { background: var(--primary); align-self: flex-end; }
+    .msg.kid { background: #334155; align-self: flex-start; }
+    .bottom-nav {
+      position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
+      width: calc(100% - 28px); max-width: 500px;
+      background: #1e293b; border: 1px solid var(--border); border-radius: 18px; padding: 6px;
+      display: grid; grid-template-columns: repeat(3, 1fr); z-index: 100;
+    }
+    .nav-btn {
+      background: transparent; border: none; color: var(--muted);
+      padding: 9px; border-radius: 12px; font-weight: 700; font-size: 0.8rem; cursor: pointer;
+    }
+    .nav-btn.active { background: var(--primary); color: #fff; }
+    .waypoint-dot {
+      background: #4f46e5; border: 2px solid #fff; border-radius: 50%;
+      color: #fff; font-size: 10px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .waypoint-dot.start { background: #10b981; }
+    .waypoint-dot.end { background: #ef4444; }
+  </style>
+</head>
+<body>
 
+<div class="shell">
+  <!-- LOGOWANIE / TWORZENIE RODZINY (MAX 2 RODZICÓW) -->
+  <div id="parent-setup" class="card" style="display: none;">
+    <h2>Panel Rodzica (Matka) 🛡️</h2>
+    <p style="color:var(--muted); font-size:0.85rem; margin-bottom:12px;">
+      Utwórz nową rodzinę lub dołącz jako drugi rodzic (limit: 2 rodziców, do 6 dzieci).
+    </p>
+    <form id="parent-form">
+      <label>Twoje Imię / Rola (np. Tata, Mama)</label>
+      <input type="text" id="p-name" required placeholder="np. Tata">
+
+      <label>Kod Rodziny (podaj ten sam kod na telefonach dzieci)</label>
+      <input type="text" id="p-code" required placeholder="np. DOM-42" style="text-transform:uppercase;">
+
+      <label>4-cyfrowy PIN Rodzica (blokada ustawień u dzieci)</label>
+      <input type="text" id="p-pin" value="1234" maxlength="6" required>
+
+      <button type="submit" class="btn-main" id="btn-parent-join">Otwórz Panel Rodzica</button>
+    </form>
+  </div>
+
+  <!-- GŁÓWNY PANEL RODZICA -->
+  <div id="parent-main" style="display: none;">
+    <div class="card top-bar">
+      <div>
+        <strong style="font-size:1.05rem;">👨‍👩‍👧‍👦 Panel Rodzica</strong>
+        <div style="font-size:0.78rem; color:var(--muted);">Kod parowania: <strong id="ui-fam-code" style="color:#10b981;"></strong></div>
+      </div>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <span class="badge">Rodzice: <strong id="ui-p-count">1/2</strong></span>
+        <span class="badge">Dzieci: <strong id="ui-k-count">0/6</strong></span>
+        <button class="badge" id="btn-logout-parent" style="cursor:pointer;">⚙️</button>
+      </div>
+    </div>
+
+    <!-- ZAKŁADKA 1: MAPA I STATUS DZIECI -->
+    <div id="tab-gps">
+      <div class="kids-strip" id="kids-cards-container">
+        <div class="card" style="width:100%; text-align:center; color:var(--muted);">
+          Czekam na sparowanie pierwszego telefonu dziecka...
+        </div>
+      </div>
+
+      <div class="card">
+        <div id="family-map"></div>
+        <div class="track-controls">
+          <select id="track-child-select" style="flex:1; min-width:130px;"></select>
+          <input type="date" id="track-date-input" style="flex:1; min-width:130px;">
+          <button class="btn-sm" id="btn-draw-track" style="padding:10px 12px;">📈 Pokaż ślad</button>
+          <button class="btn-sm" id="btn-clear-track" style="background:#475569; padding:10px 12px;">Ukryj</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ZAKŁADKA 2: WYSYŁANIE TESTÓW HTML -->
+    <div id="tab-tasks" style="display: none;">
+      <div class="card">
+        <h3>📤 Wyślij Nowy Test / Zadanie HTML</h3>
+        <form id="mission-form">
+          <label>Tytuł zadania</label>
+          <input type="text" id="m-title" required placeholder="np. Sprawdzian - Ułamki zwykłe">
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <div>
+              <label>Przedmiot</label>
+              <input type="text" id="m-subject" value="Matematyka">
+            </div>
+            <div>
+              <label>Nagroda (Gwiazdki ⭐)</label>
+              <input type="number" id="m-stars" value="25">
+            </div>
+          </div>
+
+          <label>Dla kogo?</label>
+          <select id="m-target">
+            <option value="ALL">Wszystkie podpięte dzieci</option>
+          </select>
+
+          <label>Wybierz gotowy plik .html z urządzenia (opcjonalnie)</label>
+          <input type="file" id="m-file" accept=".html,.htm">
+
+          <label>Lub wklej wygenerowany kod HTML poniżej</label>
+          <textarea id="m-html" rows="6" placeholder="<!DOCTYPE html><html>..."></textarea>
+
+          <button type="button" class="btn-sm" id="btn-insert-demo" style="margin-top:8px; background:#059669;">
+            ✨ Wstaw przykładowy szablon testu
+          </button>
+          <button type="submit" class="btn-main">Wyślij zadanie na telefon dziecka 🚀</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3>📋 Wysłane Misje i Wyniki</h3>
+        <div id="parent-missions-list" style="margin-top:10px;"></div>
+      </div>
+    </div>
+
+    <!-- ZAKŁADKA 3: CZAT RODZINNY -->
+    <div id="tab-chat" style="display: none;">
+      <div class="card">
+        <h3>💬 Czat z Dziećmi</h3>
+        <div class="chat-box" id="parent-chat-box" style="margin-top:10px;"></div>
+        <div style="display:flex; gap:6px; overflow-x:auto; padding-bottom:8px;">
+          <button class="btn-sm" data-quick="Super robota, brawo! 👏🌟">Brawo! 👏</button>
+          <button class="btn-sm" data-quick="Już po Ciebie jadę! 🚗">Już jadę! 🚗</button>
+          <button class="btn-sm" data-quick="Sprawdź nową misję w aplikacji 🎯">Nowa misja 🎯</button>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:6px;">
+          <input type="text" id="p-chat-input" placeholder="Napisz wiadomość...">
+          <button class="btn-sm" id="btn-p-send" style="flex:0 0 90px; font-size:0.9rem;">Wyślij</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-nav">
+      <button class="nav-btn active" data-ptab="gps">📍 Mapa i GPS</button>
+      <button class="nav-btn" data-ptab="tasks">📤 Testy HTML</button>
+      <button class="nav-btn" data-ptab="chat">💬 Czat</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc,
+    collection, query, where, orderBy, limit, onSnapshot, getDocs
+  } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDTWIp2sCjIbAk0fBmny8jsLba1xu2nlv0",
+    authDomain: "akademia-rodzinna.firebaseapp.com",
+    projectId: "akademia-rodzinna",
+    storageBucket: "akademia-rodzinna.firebasestorage.app",
+    messagingSenderId: "396773055975",
+    appId: "1:396773055975:web:08fafcb904a41b9c5ef142"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const PARENT_KEY = 'akademia_parent_v1';
+  let parentState = null;
+  let map = null;
+  let trackLayer = null;
+  const liveMarkers = {};
+
+  document.getElementById('track-date-input').value = new Date().toISOString().split('T')[0];
+
+  // Logowanie i rejestracja rodzica (kontrola limitu max 2 rodziców)
+  document.getElementById('parent-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('p-name').value.trim();
+    const familyCode = document.getElementById('p-code').value.trim().toUpperCase();
+    const pin = document.getElementById('p-pin').value.trim();
+
+    const saved = JSON.parse(localStorage.getItem(PARENT_KEY) || 'null');
+    const parentId = (saved && saved.id) ? saved.id : 'par_' + Date.now();
+
+    const famRef = doc(db, "families", familyCode);
+    const snap = await getDoc(famRef);
+
+    let parentsList = [];
+    if (snap.exists()) {
+      parentsList = snap.data().parents || [];
+      const alreadyIn = parentsList.some(p => p.id === parentId);
+      if (!alreadyIn && parentsList.length >= 2) {
+        alert("Limit rodziców (maksymalnie 2 osoby) został już wykorzystany dla tego kodu!");
+        return;
+      }
+      if (!alreadyIn) parentsList.push({ id: parentId, name });
+    } else {
+      parentsList = [{ id: parentId, name }];
+    }
+
+    await setDoc(famRef, { parents: parentsList, pin: pin }, { merge: true });
+
+    const state = { id: parentId, name, familyCode, pin };
+    localStorage.setItem(PARENT_KEY, JSON.stringify(state));
+    initParentDashboard(state);
+  });
+
+  function initParentDashboard(state) {
+    parentState = state;
+    document.getElementById('parent-setup').style.display = 'none';
+    document.getElementById('parent-main').style.display = 'block';
+    document.getElementById('ui-fam-code').innerText = state.familyCode;
+
+    if (!map) {
+      map = L.map('family-map').setView([50.12, 18.99], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19, attribution: '© OpenStreetMap'
+      }).addTo(map);
+      trackLayer = L.featureGroup().addTo(map);
+    }
+
+    // Nasłuchiwanie liczby rodziców
+    onSnapshot(doc(db, "families", state.familyCode), (snap) => {
+      if (snap.exists()) {
+        const pCount = (snap.data().parents || []).length;
+        document.getElementById('ui-p-count').innerText = `${pCount}/2`;
+      }
+    });
+
+    // Nasłuchiwanie dzieci i ich pozycji GPS na żywo
+    onSnapshot(collection(db, "families", state.familyCode, "children"), (snap) => {
+      document.getElementById('ui-k-count').innerText = `${snap.size}/6`;
+      const strip = document.getElementById('kids-cards-container');
+      const selectTrack = document.getElementById('track-child-select');
+      const selectTarget = document.getElementById('m-target');
+
+      strip.innerHTML = '';
+      const prevTrackVal = selectTrack.value;
+      selectTrack.innerHTML = '';
+      selectTarget.innerHTML = '<option value="ALL">Wszystkie podpięte dzieci</option>';
+
+      if (snap.empty) {
+        strip.innerHTML = '<div class="card" style="width:100%; text-align:center; color:var(--muted);">Brak sparowanych dzieci. Wpisz kod <b>' + state.familyCode + '</b> w aplikacji dziecka.</div>';
+        return;
+      }
+
+      snap.forEach((d) => {
+        const kid = d.data();
+        const loc = kid.location || null;
+        const lastSeenStr = loc ? new Date(loc.lastSeen).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : 'Brak pomiaru';
+        const battStr = (loc && loc.battery !== null && loc.battery !== undefined) ? `🔋 ${loc.battery}%` : '';
+
+        // Karta dziecka
+        const card = document.createElement('div');
+        card.className = 'kid-card';
+        card.innerHTML = `
+          <div class="kid-card-head">
+            <span class="emo">${kid.avatarEmoji || '🦄'}</span>
+            <div>
+              <strong>${kid.first}</strong> <span style="font-size:0.75rem; color:var(--muted);">(${kid.grade})</span>
+              <div style="font-size:0.75rem; color:#f59e0b;">⭐ ${kid.stars || 0} pkt ${battStr}</div>
+            </div>
+          </div>
+          <div style="font-size:0.75rem; color:var(--muted);">🕒 GPS: ${lastSeenStr}</div>
+          <div class="kid-actions">
+            <button class="btn-sm btn-focus">🎯 Pokaż</button>
+            <button class="btn-sm btn-force" style="background:#059669;">📡 Wymuś GPS</button>
+          </div>
+        `;
+
+        card.querySelector('.btn-focus').onclick = () => {
+          if (loc) {
+            map.flyTo([loc.lat, loc.lng], 16);
+            if (liveMarkers[kid.id]) liveMarkers[kid.id].openPopup();
+          } else {
+            alert("Telefon dziecka nie przysłał jeszcze współrzędnych GPS.");
+          }
+        };
+
+        card.querySelector('.btn-force').onclick = async () => {
+          await updateDoc(doc(db, "families", state.familyCode, "children", kid.id), {
+            forceGpsAt: Date.now()
+          });
+          alert(`Wysłano żądanie natychmiastowego odczytu GPS do: ${kid.first}`);
+        };
+
+        strip.appendChild(card);
+
+        // Aktualizacja pinezki na mapie
+        if (loc && loc.lat && loc.lng) {
+          const popupHtml = `
+            <div style="color:#0f172a; font-size:13px;">
+              <strong>${kid.avatarEmoji || ''} ${kid.first} (${kid.nick || kid.grade})</strong><br>
+              🕒 Godzina: <b>${lastSeenStr}</b><br>
+              🎯 Dokładność: ±${loc.acc || 0}m ${battStr}<br>
+              <a href="https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lng}" target="_blank"
+                 style="display:inline-block; margin-top:6px; padding:5px 10px; background:#4f46e5; color:#fff; border-radius:6px; text-decoration:none; font-weight:700;">
+                 Nawiguj w Google Maps ↗
+              </a>
+            </div>
+          `;
+          if (liveMarkers[kid.id]) {
+            liveMarkers[kid.id].setLatLng([loc.lat, loc.lng]).setPopupContent(popupHtml);
+          } else {
+            liveMarkers[kid.id] = L.marker([loc.lat, loc.lng]).addTo(map).bindPopup(popupHtml);
+            map.setView([loc.lat, loc.lng], 14);
+          }
+        }
+
+        // Opcje w selectach
+        const opt1 = document.createElement('option');
+        opt1.value = kid.id;
+        opt1.innerText = `${kid.first} (${kid.grade})`;
+        selectTrack.appendChild(opt1);
+
+        const opt2 = opt1.cloneNode(true);
+        selectTarget.appendChild(opt2);
+      });
+
+      if (prevTrackVal) selectTrack.value = prevTrackVal;
+    });
+
+    // Nasłuchiwanie wysłanych misji
+    const mQuery = query(collection(db, "families", state.familyCode, "missions"), orderBy("createdAt", "desc"));
+    onSnapshot(mQuery, (snap) => {
+      const list = document.getElementById('parent-missions-list');
+      list.innerHTML = '';
+      snap.forEach((d) => {
+        const m = d.data();
+        const doneEntries = m.completedBy ? Object.values(m.completedBy) : [];
+        const doneTxt = doneEntries.length > 0
+          ? doneEntries.map(e => `✅ ${e.name}: <b>${e.score}</b>`).join(' | ')
+          : '⏳ Oczekuje na rozwiązanie';
+
+        const item = document.createElement('div');
+        item.style = "padding:10px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;";
+        item.innerHTML = `
+          <div>
+            <strong>${m.title}</strong> <span style="font-size:0.75rem; color:var(--muted);">(${m.subject}, +${m.stars}⭐)</span>
+            <div style="font-size:0.78rem; color:#10b981; margin-top:3px;">${doneTxt}</div>
+          </div>
+          <button class="btn-sm" style="flex:0 0 auto; background:#ef4444;">Usuń</button>
+        `;
+        item.querySelector('button').onclick = () => deleteDoc(d.ref);
+        list.appendChild(item);
+      });
+    });
+
+    // Nasłuchiwanie Czatu
+    const cQuery = query(collection(db, "families", state.familyCode, "messages"), orderBy("createdAt", "asc"), limit(60));
+    onSnapshot(cQuery, (snap) => {
+      const box = document.getElementById('parent-chat-box');
+      box.innerHTML = '';
+      snap.forEach((d) => {
+        const msg = d.data();
+        const isMe = msg.senderId === state.id;
+        const div = document.createElement('div');
+        div.className = 'msg ' + (isMe ? 'parent' : 'kid');
+        div.innerHTML = `<strong>${msg.senderName}:</strong> ${msg.text}`;
+        box.appendChild(div);
+      });
+      box.scrollTop = box.scrollHeight;
+    });
+  }
+
+  // Rysowanie historii trasy GPS z wybranego dnia
+  document.getElementById('btn-draw-track').onclick = async () => {
+    const childId = document.getElementById('track-child-select').value;
+    const dateStr = document.getElementById('track-date-input').value;
+    if (!childId || !dateStr) return;
+
+    trackLayer.clearLayers();
+    const histRef = collection(db, "families", parentState.familyCode, "children", childId, "locations_history");
+    const q = query(histRef, where("dateStr", "==", dateStr));
+    const snap = await getDocs(q);
+
+    const pts = [];
+    snap.forEach(d => pts.push(d.data()));
+    pts.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+    if (pts.length === 0) {
+      alert("Brak zapisanych punktów trasy dla tego dnia.");
+      return;
+    }
+
+    const latLngs = pts.map(p => [p.lat, p.lng]);
+    const poly = L.polyline(latLngs, { color: '#4f46e5', weight: 4, dashArray: '6, 8' }).addTo(trackLayer);
+
+    pts.forEach((p, idx) => {
+      const isStart = idx === 0;
+      const isEnd = idx === pts.length - 1;
+      const tStart = new Date(p.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      const tEnd = p.endTime ? new Date(p.endTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : tStart;
+      const timeRange = (tStart !== tEnd) ? `${tStart} – ${tEnd}` : tStart;
+
+      const icon = L.divIcon({
+        className: 'waypoint-dot' + (isStart ? ' start' : (isEnd ? ' end' : '')),
+        iconSize: [22, 22],
+        html: `<span>${idx + 1}</span>`
+      });
+
+      L.marker([p.lat, p.lng], { icon })
+        .bindPopup(`<div style="color:#0f172a;"><b>Punkt #${idx + 1}</b><br>🕒 Godzina: ${timeRange}<br>🔋 Bateria: ${p.battery ?? 'b/d'}%</div>`)
+        .addTo(trackLayer);
+    });
+
+    map.fitBounds(poly.getBounds(), { padding: [35, 35] });
+  };
+
+  document.getElementById('btn-clear-track').onclick = () => trackLayer && trackLayer.clearLayers();
+
+  // Wczytywanie pliku .html z dysku telefonu/komputera
+  document.getElementById('m-file').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      document.getElementById('m-html').value = ev.target.result;
+      if (!document.getElementById('m-title').value) {
+        document.getElementById('m-title').value = file.name.replace(/\.html?$/i, '');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  // Wstawienie gotowego szablonu testowego
+  document.getElementById('btn-insert-demo').onclick = () => {
+    document.getElementById('m-title').value = "Szybki Quiz: Tabliczka Mnożenia";
+    document.getElementById('m-html').value = `<!DOCTYPE html>
+<html>
+<body style="font-family:sans-serif; text-align:center; padding:25px; background:#f8fafc;">
+  <h2>🧮 Ile to jest 7 × 8?</h2>
+  <p>Wybierz poprawną odpowiedź:</p>
+  <button onclick="done(1,1)" style="padding:14px 24px; font-size:18px; margin:8px; background:#10b981; color:#fff; border:none; border-radius:12px;">56</button>
+  <button onclick="done(0,1)" style="padding:14px 24px; font-size:18px; margin:8px; background:#6366f1; color:#fff; border:none; border-radius:12px;">54</button>
+  <script>
+    function done(score, max) {
+      window.parent.postMessage({ type: 'TASK_FINISHED', score: score, maxScore: max }, '*');
+    }
+  <\/script>
+</body>
+</html>`;
+  };
+
+  // Wysyłanie testu HTML do bazy
+  document.getElementById('mission-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const title = document.getElementById('m-title').value.trim();
+    const subject = document.getElementById('m-subject').value.trim();
+    const stars = Number(document.getElementById('m-stars').value || 25);
+    const targetChildId = document.getElementById('m-target').value;
+    const htmlContent = document.getElementById('m-html').value;
+
+    if (!htmlContent.trim()) {
+      alert("Wklej kod HTML lub wybierz plik .html z urządzenia!");
+      return;
+    }
+
+    await addDoc(collection(db, "families", parentState.familyCode, "missions"), {
+      title, subject, stars, targetChildId, htmlContent,
+      createdAt: new Date().toISOString(),
+      completedBy: {}
+    });
+
+    await sendParentChat(`📢 Dodano nową misję: „${title}” (+${stars} ⭐)`);
+    document.getElementById('m-title').value = '';
+    document.getElementById('m-html').value = '';
+    alert("Zadanie zostało wysłane! Pojawiło się już na telefonie dziecka.");
+  });
+
+  // Wysyłanie wiadomości na czacie
+  async function sendParentChat(text) {
+    if (!parentState || !text.trim()) return;
+    await addDoc(collection(db, "families", parentState.familyCode, "messages"), {
+      senderId: parentState.id,
+      senderName: parentState.name,
+      text: text.trim(),
+      createdAt: new Date().toISOString()
+    });
+  }
+
+  document.getElementById('btn-p-send').onclick = () => {
+    const inp = document.getElementById('p-chat-input');
+    sendParentChat(inp.value);
+    inp.value = '';
+  };
+
+  document.querySelectorAll('[data-quick]').forEach(btn => {
+    btn.onclick = () => sendParentChat(btn.dataset.quick);
+  });
+
+  // Przełączanie zakładek
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.onclick = () => {
+      const t = btn.dataset.ptab;
+      document.getElementById('tab-gps').style.display = t === 'gps' ? 'block' : 'none';
+      document.getElementById('tab-tasks').style.display = t === 'tasks' ? 'block' : 'none';
+      document.getElementById('tab-chat').style.display = t === 'chat' ? 'block' : 'none';
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (t === 'gps' && map) setTimeout(() => map.invalidateSize(), 150);
+    };
+  });
+
+  document.getElementById('btn-logout-parent').onclick = () => {
+    if (confirm("Czy chcesz zmienić ustawienia konta rodzica / Kod Rodziny?")) {
+      document.getElementById('parent-setup').style.display = 'block';
+      document.getElementById('parent-main').style.display = 'none';
+    }
+  };
+
+  const savedParent = localStorage.getItem(PARENT_KEY);
+  if (savedParent) {
+    initParentDashboard(JSON.parse(savedParent));
+  } else {
+    document.getElementById('parent-setup').style.display = 'block';
+  }
+</script>
+</body>
+</html>
