@@ -1,0 +1,14 @@
+{
+  "name": "akademia-rodzinna",
+  "version": "1.0.0",
+  "description": "Edukacyjna aplikacja rodzinna z czatem i lokalizatorem GPS",
+  "private": true,
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/geolocation": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0"
+  }
+}
